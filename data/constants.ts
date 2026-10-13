@@ -1,0 +1,1 @@
+export const LOCAL_STORAGE_STATE_KEY: string = "local-storage-keys";
