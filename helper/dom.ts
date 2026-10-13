@@ -1,5 +1,5 @@
-import { eventNamesLib } from "lib/data/enum";
-import { Logger } from "lib/services/logger";
+import { Logger } from "lib/lib/services/logger";
+import { eventNamesLib } from "lib/lib-fe/data/enum";
 
 const logger: Logger = Logger.getInstance();
 

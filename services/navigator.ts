@@ -1,8 +1,8 @@
 import { Logger } from "../../lib/services/logger";
-import { checkStringForExistence, checkStringForNonExistence } from "lib/data/data";
-import { eventNamesLib } from "lib/data/enum";
-import { clearChildren, emitNavigationEvent } from "lib/helper/dom";
-import { Route, RouteInfo } from "lib/types";
+import { checkStringForExistence, checkStringForNonExistence } from "lib/lib/data/data";
+import { eventNamesLib } from "lib/lib-fe/data/enum";
+import { clearChildren, emitNavigationEvent } from "lib/lib-fe/helper/dom";
+import { Route, RouteInfo } from "lib/lib/types";
 
 export class Navigator {
   static #instance: Navigator
