@@ -1,7 +1,7 @@
 import { Logger } from "library/lib/services/logger";
-import { Translations, Translator } from "../../services/translator";
-import { State } from "../../services/state";
-import resetStyles from '../../styles/reset.css?inline';
+import { Translations, Translator } from "library/lib-fe/services/translator";
+import { State } from "library/lib-fe/services/state";
+import resetStyles from 'library/lib-fe/styles/reset.css?inline';
 import componentStyles from './styles.css?inline';
 import templateHtml from './doc.html?raw';
 
