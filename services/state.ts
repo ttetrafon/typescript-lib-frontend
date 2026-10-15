@@ -1,8 +1,8 @@
 import { cloneDeep } from "lodash";
 import { Logger } from "../../lib/services/logger";
-import { BroadcastMessage, Listener, ObservableOptions } from "lib/lib/types";
-import { Observable } from "lib/lib-fe/wrappers/Observable";
-import { LOCAL_STORAGE_STATE_KEY } from "lib/lib-fe/data/constants";
+import { BroadcastMessage, Listener, ObservableOptions } from "library/lib/types";
+import { Observable } from "library/lib-fe/wrappers/Observable";
+import { LOCAL_STORAGE_STATE_KEY } from "library/lib-fe/data/constants";
 
 export class State {
   static #instance: State;

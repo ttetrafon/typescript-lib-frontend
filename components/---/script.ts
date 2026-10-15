@@ -1,4 +1,4 @@
-import { Logger } from "lib/lib/services/logger";
+import { Logger } from "library/lib/services/logger";
 import { Translations, Translator } from "../../services/translator";
 import { State } from "../../services/state";
 import resetStyles from '../../styles/reset.css?inline';
