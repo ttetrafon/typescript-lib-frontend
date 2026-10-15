@@ -2,7 +2,7 @@ import { Logger } from "../../lib/services/logger";
 import { checkStringForExistence, checkStringForNonExistence } from "library/lib/data/data";
 import { eventNamesLib } from "library/lib-fe/data/enum";
 import { clearChildren, emitNavigationEvent } from "library/lib-fe/helper/dom";
-import { Route, RouteInfo } from "library/lib/types";
+import { Route, RouteInfo } from "library/lib-fe/types";
 
 export class Navigator {
   static #instance: Navigator

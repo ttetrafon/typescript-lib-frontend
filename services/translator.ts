@@ -1,4 +1,4 @@
-import { Logger } from "../../lib/services/logger";
+import { Logger } from "library/lib/services/logger";
 
 export type Translations = {
   text?: Record<string, string>;

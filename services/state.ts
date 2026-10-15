@@ -1,6 +1,6 @@
 import { cloneDeep } from "lodash";
 import { Logger } from "../../lib/services/logger";
-import { BroadcastMessage, Listener, ObservableOptions } from "library/lib/types";
+import { BroadcastMessage, Listener, ObservableOptions } from "library/lib-fe/types";
 import { Observable } from "library/lib-fe/wrappers/Observable";
 import { LOCAL_STORAGE_STATE_KEY } from "library/lib-fe/data/constants";
 
