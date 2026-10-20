@@ -70,9 +70,14 @@ h6 {
   text-wrap: balance;
 }
 
-/*
-  10. Create a root stacking context
-*/
+/* 10. Set the default cursor for controls */
+
+button,
+select {
+  cursor: pointer;
+}
+
+/* 11. Create a root stacking context */
 #app,
 #root,
 #__next {
