@@ -46,3 +46,12 @@ export type BroadcastMessageOptions = {
 }
 
 export type Listener = (subscriber: string, watchedPath: string, updatedValue: any) => void;
+
+////////////////
+//   WINDOW   //
+////////////////
+
+export type WindowSize = {
+  height: number;
+  width: number;
+}

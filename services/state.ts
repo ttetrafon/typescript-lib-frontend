@@ -200,7 +200,7 @@ export class State {
    * Subscribe to an observable and be notified of value changes.
    * @param {string} observable: the name of the observable
    * @param {string} subscriber: the name of the
-   * @param {function} callback: to be called when the observable is updated - don't forget to use .bind(this)
+   * @param {Record<string, Listener>} listeners: dictionary of identifiers & listener functions to be called when the observable is updated - don't forget to use .bind(this)
    * @param {number} retry: for internal, recursive usage, in case the initial state is not yet here
    */
   async subscribeToObservable(observable: string, subscriber: string, listeners: Record<string, Listener>, retry: number = 0) {
