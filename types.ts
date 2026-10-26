@@ -21,6 +21,12 @@ export type RouteInfo = {
   navData?: Record<string, unknown>;
 }
 
+//////////////////
+//   REQUESTS   //
+//////////////////
+
+export type RequestMethod = 'GET' | 'DELETE' | 'PATCH' | 'POST' | 'PUT';
+
 ///////////////
 //   STATE   //
 ///////////////
