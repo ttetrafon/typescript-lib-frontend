@@ -10,6 +10,7 @@ export type Route = {
   description: string;
   pathType: PathType;
   navData?: Record<string, unknown>;
+  attributes?: Record<string, string>;
 }
 
 export type RouteInfo = {
@@ -19,6 +20,7 @@ export type RouteInfo = {
   canonicalUrl: string;
   structuredData: object;
   navData?: Record<string, unknown>;
+  attributes?: Record<string, string>;
 }
 
 //////////////////

@@ -129,7 +129,7 @@ export class Navigator {
 
       if (part != currentPathParts[i] || !parentContainer.firstChild) {
         this._logger.debug(`... updating part: ${part}`);
-        this.updateContent(parentContainer, route.content, route.navData);
+        this.updateContent(parentContainer, route.content, route.navData, route.attributes);
       }
       parentContainer = "declareSubContainer" in (parentContainer.firstChild as object) ? (parentContainer.firstChild as any).declareSubContainer() : null;
 
@@ -186,7 +186,8 @@ export class Navigator {
         description: r.description,
         url: this.createCanonicalUrl(r.content)
       },
-      navData: r.navData
+      navData: r.navData,
+      attributes: r.attributes,
     };
   }
 
@@ -211,12 +212,18 @@ export class Navigator {
     link.setAttribute("href", value!);
   }
 
-  private updateContent(parentContainer: HTMLElement | null, content: string, navData?: Record<string, unknown>) {
+  private updateContent(parentContainer: HTMLElement | null, content: string, navData?: Record<string, unknown>, attributes?: Record<string, string>) {
     this._logger.debug(`--> Navigator.updateContent()`, parentContainer, content, navData);
     if (checkStringForNonExistence(content) || !parentContainer) return;
 
     parentContainer.innerHTML = content;
-    if (navData) (parentContainer.firstChild as Element).setAttribute("nav-data", JSON.stringify(navData));
+    const el: HTMLElement = parentContainer.firstChild as HTMLElement;
+    if (navData) el.setAttribute("nav-data", JSON.stringify(navData));
+    if (attributes) {
+      for (const [key, value] of Object.entries(attributes)) {
+        el.setAttribute(key, value);
+      }
+    }
   }
 
   private updateMetadata(route: RouteInfo) {
