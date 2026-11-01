@@ -1,5 +1,5 @@
 import { cloneDeep } from "lodash";
-import { Listener } from "library/lib-fe/types";
+import { Listener } from "library/lib-fe/types/state";
 
 export class Observable {
   private name: string;

@@ -1,4 +1,4 @@
-import { RequestMethod } from '../types';
+import { RequestMethod } from '../types/requests';
 
 export async function request<T>(url: string, method: RequestMethod, data: string | undefined, headers?: Record<string, string>): Promise<T> {
   const h = new Headers();

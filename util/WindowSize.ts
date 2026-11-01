@@ -1,6 +1,6 @@
 import { OBSERVABLE_WINDOW_SIZE } from "../data/constants";
 import { State } from "../services/state";
-import { WindowSize } from "../types";
+import { WindowSize } from "../types/html";
 
 export class WindowSizeWatcher {
   static #instance: WindowSizeWatcher;
