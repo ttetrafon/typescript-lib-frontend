@@ -40,7 +40,7 @@ class Component extends HTMLElement {
 
     this.l = Logger.getInstance();
     this.t = Translator.getInstance();
-    this.s = State.getInstance("...");
+    this.s = State.getInstance("..."); // FIXME: use the actual AppName
   }
 
   // Attributes need to be observed to be tied to the lifecycle change callback.
