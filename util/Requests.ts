@@ -20,9 +20,9 @@ export async function request<T>(url: string, method: RequestMethod, data: strin
 }
 
 export async function requestGet<T>(url: string): Promise<T> {
-  return await request(url, 'GET', undefined);
+  return await request<T>(url, 'GET', undefined);
 }
 
 export async function requestPost<T>(url: string, data: string): Promise<T> {
-  return await request(url, 'POST', data);
+  return await request<T>(url, 'POST', data);
 }
