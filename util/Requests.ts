@@ -1,6 +1,7 @@
+import { createDpopProof } from '../security/dpop';
 import { RequestMethod } from '../types/requests';
 
-export async function request<T>(url: string, method: RequestMethod, data: string | undefined, headers?: Record<string, string>): Promise<T> {
+export async function request<T>(url: string, method: RequestMethod, data?: string, headers?: Record<string, string>, credentials?: RequestCredentials): Promise<T> {
   const h = new Headers();
   h.append('Content-Type', 'application/json');
   if (headers) {
@@ -13,16 +14,27 @@ export async function request<T>(url: string, method: RequestMethod, data: strin
     method: method,
     body: data,
     headers: h,
+    credentials,
   });
   if (!res.ok) throw new Error(`Request at ${url} failed with code ${res.status}::${res.statusText}`);
 
   return (await res.json()) as T;
 }
 
-export async function requestGet<T>(url: string): Promise<T> {
-  return await request<T>(url, 'GET', undefined);
+export async function requestGet<T>(url: string, withAuth: boolean): Promise<T> {
+  return withAuth
+    ? await request<T>(url, 'GET', undefined, { DPoP: await createDpopProof('POST', url) }, 'include')
+    : await request<T>(url, 'GET');
 }
 
-export async function requestPost<T>(url: string, data: string): Promise<T> {
-  return await request<T>(url, 'POST', data);
+export async function requestPost<T>(url: string, data: string, withAuth: boolean): Promise<T> {
+  return withAuth
+    ? await request<T>(
+      url,
+      'POST',
+      data,
+      { DPoP: await createDpopProof('POST', url) },
+      'include' // lets the browser store the HttpOnly refresh cookie from a cross-origin response
+    )
+    : await request<T>(url, 'POST', data);
 }
