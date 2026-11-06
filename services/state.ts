@@ -131,7 +131,7 @@ export class State {
    * @param {any} value: the observable's value
    * @param {ObservableOptions} options: observable secondary options: 'broadcastCreation' determines if the creation will be broadcast to other tabs, 'localStorage' determines if the observable will persist in local storage; default = { broadcastCreation: true, localStorage: false }
    */
-  createObservable(observable: string, value: any, options: ObservableOptions = { broadcastCreation: true, localStorage: false }) {
+  public createObservable(observable: string, value: any, options: ObservableOptions = { broadcastCreation: true, localStorage: false }) {
     this.#logger.debug(`---> State.createObservable()`, observable, value, options);
 
     if (this.observables.hasOwnProperty(observable)) {
@@ -172,7 +172,7 @@ export class State {
    * @param {number} retry: for internal, recursive usage, in case the initial state is not yet here; default = 0
    * @returns
    */
-  async getValueFromObservable<T>(path: string, retry: number = 0): Promise<T | null> {
+  public async getValueFromObservable<T>(path: string, retry: number = 0): Promise<T | null> {
     this.#logger.debug(`---> State.getValueFromObservable(${path})`);
     const observable: string = this.getObservableFromPath(path);
 
@@ -203,7 +203,7 @@ export class State {
    * @param {Record<string, Listener>} listeners: dictionary of identifiers & listener functions to be called when the observable is updated - don't forget to use .bind(this)
    * @param {number} retry: for internal, recursive usage, in case the initial state is not yet here
    */
-  async subscribeToObservable(observable: string, subscriber: string, listeners: Record<string, Listener>, retry: number = 0) {
+  public async subscribeToObservable(observable: string, subscriber: string, listeners: Record<string, Listener>, retry: number = 0) {
     this.#logger.debug(`---> subscribeToObservable(${observable}, ${subscriber})`);
     const obs: Observable = this.observables[observable];
     if (obs) {
@@ -224,7 +224,7 @@ export class State {
    * @param {string} observable: the observable's name
    * @param {string} subscriber: the subscriber's name
    */
-  async unsubscribeFromObservable(observable: string, subscriber: string, listeners?: string[]) {
+  public async unsubscribeFromObservable(observable: string, subscriber: string, listeners?: string[]) {
     this.#logger.debug(`---> unsubscribeFromObservable(${observable}, ${subscriber})`);
     const obs: Observable = this.observables[observable];
     if (obs) {
@@ -238,7 +238,7 @@ export class State {
    * @param {any} value: the updated value
    * @param {boolean} broadcastChange: if this is to be broadcast within the browser (using the broadcast channel API); default=true
    */
-  async updateObservable(path: string, value: any, broadcastChange: boolean = true) {
+  public async updateObservable(path: string, value: any, broadcastChange: boolean = true) {
     this.#logger.debug(`---> State.updateObservable(${path}`, value);
     const observable: string = this.getObservableFromPath(path);
 
@@ -265,7 +265,7 @@ export class State {
   //   LOCAL STORAGE   //
   ///////////////////////
 
-  public addObservableInLocalStorage(observable: string, value: any) {
+  private addObservableInLocalStorage(observable: string, value: any) {
     setTimeout(() => {
       this.storeInLocalStorage(observable, value);
       this.keysInLocalStorage.add(observable);
@@ -273,21 +273,21 @@ export class State {
     }, 0);
   }
 
-  public isObservableInLocalStorage(path: string): boolean {
+  private isObservableInLocalStorage(path: string): boolean {
     const observable = this.getObservableFromPath(path);
     return this.keysInLocalStorage.has(observable);
   }
 
-  public retrieveFromLocalStorage(key: string): any {
+  private retrieveFromLocalStorage(key: string): any {
     const s: string | null = window.localStorage.getItem(key);
     return s !== null ? JSON.parse(s) : null;
   }
 
-  public storeInLocalStorage(key: string, value: any) {
+  private storeInLocalStorage(key: string, value: any) {
     window.localStorage.setItem(key, JSON.stringify(value));
   }
 
-  public loadLocalStorageKeys() {
+  private loadLocalStorageKeys() {
     const s: string | null = window.localStorage.getItem(LOCAL_STORAGE_STATE_KEY);
     if (s) {
       const keys: string[] = JSON.parse(s);
@@ -295,7 +295,7 @@ export class State {
     }
   }
 
-  public saveLocalStorageKeys() {
+  private saveLocalStorageKeys() {
     window.localStorage.setItem(LOCAL_STORAGE_STATE_KEY, JSON.stringify([...this.keysInLocalStorage]));
   }
 
