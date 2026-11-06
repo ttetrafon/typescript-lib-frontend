@@ -63,8 +63,9 @@ const b64urlJson = (o: unknown): string => b64url(new TextEncoder().encode(JSON.
  * Creates a DPoP proof for `method url`.
  * @param url Full request URL; query and fragment are dropped, the rest must match the server's PUBLIC_URL + path.
  * @param accessToken Pass it on requests that carry an access token, so the proof is bound to it (`ath`).
+ * @param nonce The latest `DPoP-Nonce` the server sent for this origin, if any.
  */
-export async function createDpopProof(method: string, url: string, accessToken?: string): Promise<string> {
+export async function createDpopProof(method: string, url: string, accessToken?: string, nonce?: string): Promise<string> {
   const { privateKey, publicKey } = await getDpopKeyPair();
   const { kty, crv, x, y } = await crypto.subtle.exportKey("jwk", publicKey); // public members only
 
@@ -76,6 +77,7 @@ export async function createDpopProof(method: string, url: string, accessToken?:
     jti: crypto.randomUUID(),
     iat: Math.floor(Date.now() / 1000),
   };
+  if (nonce) payload.nonce = nonce;
   if (accessToken) {
     const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(accessToken));
     payload.ath = b64url(hash);
