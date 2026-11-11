@@ -143,6 +143,14 @@ export class Navigator {
     }
   }
 
+  /**
+   * Navigate one step back in the browser history.
+   * This triggers the `popstate` event, which is handled in `init()`.
+   */
+  public static back() {
+    window.history.back();
+  }
+
   public cleanContainers(newPathParts: string[], currentPathParts: string[]) {
     this._logger.debug(`---> Navigator.cleanContainers(${JSON.stringify(newPathParts)}, ${JSON.stringify(currentPathParts)})`);
     for (let newPart of newPathParts) {

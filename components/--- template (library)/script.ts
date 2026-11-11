@@ -31,11 +31,10 @@ class Component extends HTMLElement {
     // Note that the DOM cannot be affected within the constructor and instead such manipulations must be deferred to the lifecycle methods.
     super();
 
-    this.#shadow = this.attachShadow({ mode: 'open' });
     // The mode can be set to 'open' if we need the document to be able to access the shadow-dom internals.
     // Access happens through ths `shadowroot` property in the host.
-
-    template.shadowRootDelegatesFocus = true; // focused can be delegated within the component from the outside
+    // DelegateFocus allows for focus() to be passed from the outside to the component itself.
+    this.#shadow = this.attachShadow({ mode: 'open', delegatesFocus: true });
     this.#shadow.appendChild(template.content.cloneNode(true));
 
     this.l = Logger.getInstance();
