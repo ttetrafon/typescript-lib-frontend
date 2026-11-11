@@ -162,6 +162,12 @@ export class Navigator {
     return `<${content}></${content}>`;
   }
 
+  /**
+   * Assign an in-app navigation link to the component, on the selected event.
+   * @param {HTMLElement} element: The element on which the navigation event is assigned.
+   * @param {string} page: The navigation target.
+   * @param {Event} event: The event triggering the navigation.
+   */
   public static followLink(element: HTMLElement, page: string, event: Event) {
     event.preventDefault();
     event.stopImmediatePropagation();

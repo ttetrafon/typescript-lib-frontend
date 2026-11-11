@@ -19,6 +19,7 @@ ${templateHtml}
 
 class Component extends HTMLElement {
   #shadow: ShadowRoot;
+  private initialised: boolean = false;
   private l: Logger;
   private t: Translator;
   private s: State | null = null;
@@ -78,6 +79,20 @@ class Component extends HTMLElement {
     // Triggered when the component is added to the DOM. Note that this is not triggered when the element is created.
     // Can be triggered multiple times, especially if the component is moved around.
 
+    // Note that custom elements cannot access custom properties or custom methods of another custom element from `connectedCallback` if the second element appears later in the DOM.
+    // This can be overcome by using `window.customElements.whenDefined('element-name').then(() => { ... })`.
+
+    // Note also that event handlers need to be assigned only once.
+    // Local event handlers do not need to be removed; they are automatically removed when the component is disposed.
+
+    if (!this.initialised) {
+      // ... local stuff
+
+      this.initialised = true;
+    }
+
+    // On the contrary, Window/Document event handlers (or generally, any global event handler) need to be removed, and so they need to be reassigned when connected.
+
     Object.keys(this.translations).forEach((t: string) => {
       const el: HTMLElement | null = this.#shadow.getElementById(t);
       if (!el) return;
@@ -86,9 +101,6 @@ class Component extends HTMLElement {
     });
 
     if (this.i18n) this.t?.registerElementsForTranslations(this.i18n, this.textElements, this.translations);
-
-    // Note that custom elements cannot access custom properties or custom methods of another custom element from `connectedCallback` if the second element appears later in the DOM.
-    // This can be overcome by using `window.customElements.whenDefined('element-name').then(() => { ... })`.
 
     this.setupState();
   }
