@@ -15,6 +15,7 @@ export class Navigator {
   private aliases: Record<string, string>;
 
   private dialog: HTMLDialogElement;
+  // private dialogues: Record<string, HTMLDialogElement> = {}; // TODO: open arbitrary dialog pop-ups as needed
   private dialogConfirmCallback: (data?: unknown) => Promise<void>;
   private dialogCancelCallback: () => Promise<void>;
 
@@ -70,7 +71,6 @@ export class Navigator {
         el.setAttribute(key, JSON.stringify(value));
       }
       this.dialog.appendChild(el);
-
       this.dialog.showModal();
     });
     this.dialog.addEventListener(eventNamesLib.DIALOG_CONFIRM.description!, async (event) => {

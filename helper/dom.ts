@@ -111,6 +111,14 @@ export async function emitNavigationEvent(that: EventTarget, targetUrl: string, 
   });
 }
 
+/**
+ * The Navigator captures this event and creates a dialog featuring the specified web-component.
+ * @param {HTMLElement} that
+ * @param {string} webComponent
+ * @param {any} data
+ * @param {Function} confirmCb
+ * @param {Function} cancelCb
+ */
 export async function emitDialogEvent(that: EventTarget, webComponent: string, data: object, confirmCb?: Function, cancelCb?: Function): Promise<void> {
   emitCustomEvent(that, eventNamesLib.DIALOG_OPEN.description!, {
     bubbles: true,
@@ -121,6 +129,11 @@ export async function emitDialogEvent(that: EventTarget, webComponent: string, d
     cancelCb: cancelCb
   });
 }
+/**
+ * Triggers confirming and closing the current dialog.
+ * @param {HTMLElement} that
+ * @param {any} data
+ */
 export async function emitDialogConfirmEvent(that: EventTarget, data: unknown): Promise<void> {
   emitCustomEvent(that, eventNamesLib.DIALOG_CONFIRM.description!, {
     bubbles: true,
@@ -128,6 +141,10 @@ export async function emitDialogConfirmEvent(that: EventTarget, data: unknown): 
     data: data
   });
 }
+/**
+ * Triggers cancelling and closing the current dialog.
+ * @param {HTMLElement} that
+ */
 export async function emitDialogCancelEvent(that: EventTarget): Promise<void> {
   emitCustomEvent(that, eventNamesLib.DIALOG_CANCEL.description!, {
     bubbles: true,
