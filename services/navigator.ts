@@ -101,7 +101,7 @@ export class Navigator {
 
   public static navigate(path: string, pushState = true, stateData: object = {}) {
     this.#instance.navigateTo(path, pushState, stateData);
-  };
+  }
 
   private navigateTo(path: string, pushState = true, stateData: object = {}) {
     this._logger.debug(`---> Navigator.navigateTo(${path}, ${pushState}, ${JSON.stringify(stateData)})`);
