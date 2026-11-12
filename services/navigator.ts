@@ -13,6 +13,7 @@ export class Navigator {
   private subPageContainers: Record<string, HTMLElement>;
   private routes: Record<string, Route>;
   private aliases: Record<string, string>;
+  private renderedPathParts: string[] = [];
 
   private dialog: HTMLDialogElement;
   // private dialogues: Record<string, HTMLDialogElement> = {}; // TODO: open arbitrary dialog pop-ups as needed
@@ -107,9 +108,7 @@ export class Navigator {
     this._logger.debug(`---> Navigator.navigateTo(${path}, ${pushState}, ${JSON.stringify(stateData)})`);
     if (!this.appRoot) return;
 
-    const currentPath = window.location.pathname;
-    const currentPathParts = currentPath.split("/").filter(Boolean);
-    // console.log(`... currentPath = ${ currentPath }`, currentPathParts);
+    const currentPathParts = this.renderedPathParts;
 
     let newPath = this.normalisePath(path);
     if (newPath == "/") {
@@ -137,6 +136,8 @@ export class Navigator {
         this.updateMetadata(route);
       }
     }
+
+    this.renderedPathParts = newPathParts;
 
     if (pushState) {
       window.history.pushState({}, '', newPath);
