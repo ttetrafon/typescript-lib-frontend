@@ -1,0 +1,19 @@
+:host {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+#icon {
+  width: 100%;
+  height: 100%;
+}
+
+/* `color` is inherited through the shadow boundary, so the icon follows the colour of the host or its parents.
+  For multi-colour icons use custom properties inside the svg, e.g. fill="var(--icon-accent, currentColor)". */
+#icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
