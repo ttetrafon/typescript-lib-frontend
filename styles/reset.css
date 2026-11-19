@@ -83,3 +83,118 @@ select {
 #__next {
   isolation: isolate;
 }
+
+/* 12. Element usage errors */
+
+/* Sections without headings */
+section:not(:has(h1, h2, h3, h4, h5, h6)) {
+  --ERROR: "This section needs a heading";
+  outline: 3px dashed red;
+}
+
+/* Images without alt text */
+img:not([alt]) {
+  --ERROR: "Image is missing an alt attribute";
+  outline: 3px dashed red;
+}
+
+/* Empty headings */
+:is(h1, h2, h3, h4, h5, h6):empty {
+  --ERROR: "Heading is empty";
+  outline: 3px dashed red;
+}
+
+/* Links without a destination or without an accessible name */
+a[href=""],
+a[href="#"],
+a:not([href]):not([role]) {
+  --ERROR: "Link has no real destination";
+  outline: 3px dashed red;
+}
+
+a[href]:empty:not([aria-label], [aria-labelledby]) {
+  --ERROR: "Link has no accessible name";
+  outline: 3px dashed red;
+}
+
+/* External links opened in a new tab without rel="noopener" */
+a[target="_blank"]:not([rel~="noopener"]) {
+  --ERROR: 'Add rel="noopener" to links with target="_blank"';
+  outline: 3px dashed red;
+}
+
+/* Buttons without an accessible name */
+button:empty:not([aria-label], [aria-labelledby], [title]) {
+  --ERROR: "Button has no accessible name";
+  outline: 3px dashed red;
+}
+
+/* Form controls without a label */
+input:not([type="hidden"], [type="submit"], [type="reset"], [type="button"], [type="image"], [aria-label], [aria-labelledby]):not(label input):not([id]),
+select:not([aria-label], [aria-labelledby]):not(label select):not([id]),
+textarea:not([aria-label], [aria-labelledby]):not(label textarea):not([id]) {
+  --ERROR: "Form control needs a <label> or aria-label";
+  outline: 3px dashed red;
+}
+
+/* Positive tabindex breaks natural focus order */
+[tabindex]:not([tabindex="0"], [tabindex="-1"]) {
+  --ERROR: "Avoid tabindex values other than 0 or -1";
+  outline: 3px dashed red;
+}
+
+/* Clickable non-interactive elements (use a button or link instead) */
+:is(div, span, li, p, img)[onclick]:not([role], [tabindex]) {
+  --ERROR: "Use a <button> or <a> for clickable elements";
+  outline: 3px dashed red;
+}
+
+/* Focusable elements hidden from assistive technology */
+[aria-hidden="true"]:is(a[href], button, input, select, textarea, [tabindex="0"]),
+[aria-hidden="true"]:has(a[href], button, input, select, textarea, [tabindex="0"]) {
+  --ERROR: "aria-hidden content must not be focusable";
+  outline: 3px dashed red;
+}
+
+/* Iframes without a title */
+iframe:not([title]) {
+  --ERROR: "iframe needs a title";
+  outline: 3px dashed red;
+}
+
+/* Tables without header cells */
+table:not(:has(th)) {
+  --ERROR: "Table needs header cells (<th>)";
+  outline: 3px dashed red;
+}
+
+/* Deprecated / presentational elements */
+font,
+center,
+marquee,
+blink,
+big,
+strike {
+  --ERROR: "Deprecated element";
+  outline: 3px dashed red;
+}
+
+/* Empty id / duplicate-prone attributes */
+[id=""],
+[class=""] {
+  --ERROR: "Empty id or class attribute";
+  outline: 3px dashed red;
+}
+
+/* Media that autoplays with sound */
+:is(video, audio)[autoplay]:not([muted]) {
+  --ERROR: "Autoplaying media must be muted";
+  outline: 3px dashed red;
+}
+
+/* Missing/invalid language on the document */
+html:not([lang]),
+html[lang=""] {
+  --ERROR: "<html> needs a lang attribute";
+  outline: 3px dashed red;
+}
