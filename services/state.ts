@@ -126,15 +126,18 @@ export class State {
   /////////////////////
 
   /**
-   * Create a new observable
+   * Create a new observable, or update one created with default value(s)
    * @param {string} observable: the observable's name
    * @param {any} value: the observable's value
    * @param {ObservableOptions} options: observable secondary options: 'broadcastCreation' determines if the creation will be broadcast to other tabs, 'localStorage' determines if the observable will persist in local storage; default = { broadcastCreation: true, localStorage: false }
+   * @param {boolean} defaulted: the observable has been created by a subscriber and should be updated during creation
    */
-  public createObservable(observable: string, value: any, options: ObservableOptions = { broadcastCreation: true, localStorage: false }) {
-    this.#logger.debug(`---> State.createObservable()`, observable, value, options);
+  public createObservable(observable: string, value: any, options: ObservableOptions = { broadcastCreation: true, localStorage: false }, defaulted: boolean = false) {
+    this.#logger.debug(`---> State.createObservable(${observable}, ${JSON.stringify(value)}, ${JSON.stringify(options)}, ${defaulted})`);
 
-    if (this.observables.hasOwnProperty(observable)) {
+    const exists: boolean = this.observables.hasOwnProperty(observable);
+    const hasDefaultValue: boolean = exists && this.observables[observable].isDefault();
+    if (exists && !hasDefaultValue) {
       this.#logger.warn("Observable creation failed as it already exists.");
       return;
     }
@@ -150,7 +153,13 @@ export class State {
       }
     }
 
-    this.observables[observable] = new Observable(observable, value);
+    if (exists && hasDefaultValue) {
+      this.observables[observable].set(observable, value);
+      this.observables[observable].invalidateDefaultStatus();
+    }
+    else {
+      this.observables[observable] = new Observable(observable, value, defaulted);
+    }
 
     if (options.broadcastCreation) this.broadcastMessage({
       type: 'create-observable',
@@ -197,25 +206,26 @@ export class State {
   }
 
   /**
-   * Subscribe to an observable and be notified of value changes.
+   * Subscribe to an observable and be notified of value changes. Create the observable with its default value if it does not exist yet.
    * @param {string} observable: the name of the observable
    * @param {string} subscriber: the name of the
    * @param {Record<string, Listener>} listeners: dictionary of identifiers & listener functions to be called when the observable is updated - don't forget to use .bind(this)
-   * @param {number} retry: for internal, recursive usage, in case the initial state is not yet here
+   * @param {any} defaultValue: the observable's default value, in case it has not
    */
-  public async subscribeToObservable(observable: string, subscriber: string, listeners: Record<string, Listener>, retry: number = 0) {
-    this.#logger.debug(`---> subscribeToObservable(${observable}, ${subscriber})`);
-    const obs: Observable = this.observables[observable];
-    if (obs) {
-      obs.subscribe(subscriber, listeners);
-      return;
+  public async subscribeToObservable(observable: string, subscriber: string, listeners: Record<string, Listener>, defaultValue: any) {
+    this.#logger.debug(`---> subscribeToObservable(${observable}, ${subscriber}, ${JSON.stringify(defaultValue)})`);
+
+    let obs: Observable = this.observables[observable];
+    if (!obs) {
+      this.createObservable(observable, defaultValue, {
+        localStorage: false,
+        broadcastCreation: false
+      }, true);
+      obs = this.observables[observable];
     }
 
-    if (retry < 10) {
-      setTimeout(async () => {
-        return await this.subscribeToObservable(observable, subscriber, listeners, retry + 1);
-      }, 1000);
-    }
+    obs.subscribe(subscriber, listeners);
+
     this.#logger.debug(`... this.observables[${observable}]:`, this.observables[observable]);
   }
 

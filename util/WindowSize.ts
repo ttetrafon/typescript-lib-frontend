@@ -16,7 +16,8 @@ export class WindowSizeWatcher {
     this.#state.createObservable(
       OBSERVABLE_WINDOW_SIZE,
       {
-        width: 0, height: 0
+        height: window.innerHeight,
+        width: window.innerWidth
       },
       {
         localStorage: false,

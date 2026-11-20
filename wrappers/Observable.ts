@@ -6,10 +6,12 @@ export class Observable {
   private value: any;
   // { 'subscriber': { 'watched-path': callback } }
   private listeners: Record<string, Record<string, Listener>>;
+  private default: boolean;
 
-  constructor(name: string, value: any) {
+  constructor(name: string, value: any, isDefault: boolean) {
     this.name = name;
     this.value = value;
+    this.default = isDefault;
     this.listeners = {};
   }
 
@@ -54,6 +56,14 @@ export class Observable {
     }
     wrapper[parts[1]] = value;
     this.notifyListeners(updatePath);
+  }
+
+  isDefault(): boolean {
+    return this.default;
+  }
+
+  invalidateDefaultStatus(): void {
+    this.default = false;
   }
 
   async subscribe(subscriber: string, listeners: Record<string, Listener>) {

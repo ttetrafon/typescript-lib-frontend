@@ -3,7 +3,7 @@ import { Observable } from './Observable';
 
 describe('Observable', () => {
   describe('constructor', () => {
-    it('should create an object with any value is not provided', async () => {
+    it('should create an object with any value provided', async () => {
       const l: any[] = [
         ["o1", 123],
         ["o2", "some text"],
@@ -11,7 +11,7 @@ describe('Observable', () => {
       ]
 
       l.forEach(i => {
-        expect(new Observable(i[0], i[1])).toBeDefined();
+        expect(new Observable(i[0], i[1], false)).toBeDefined();
       });
     });
   });
@@ -29,7 +29,7 @@ describe('Observable', () => {
         }
       }
     };
-    const obs: Observable = new Observable("obs", v);
+    const obs: Observable = new Observable("obs", v, false);
 
     it('should return the requested property', async () => {
       expect(obs.get()).toMatchObject(v);
@@ -55,7 +55,7 @@ describe('Observable', () => {
         }
       }
     };
-    const obs: Observable = new Observable("obs", v);
+    const obs: Observable = new Observable("obs", v, false);
 
     it('should update the requested value', async () => {
       obs.set("obs.a", 5);
