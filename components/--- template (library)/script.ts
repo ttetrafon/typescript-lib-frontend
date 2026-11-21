@@ -43,13 +43,15 @@ class Component extends HTMLElement {
   }
 
   // Attributes need to be observed to be tied to the lifecycle change callback.
-  static get observedAttributes() { return ['app-name', 'label', 'data', 'i18n', 'styles']; }
+  static get observedAttributes() { return ['app-name', 'label', 'data', 'i18n', 'styles', 'nav-data']; }
 
   // Attribute values are always strings, so we need to convert them in their getter/setters as appropriate.
   get appName() { return this.getAttribute('app-name') ?? ""; }
   get data() { return JSON.parse(this.getAttribute('data') ?? "{}"); }
   get label() { return this.getAttribute('label'); }
   get i18n() { return this.getAttribute('i18n'); }
+  // Set by the Navigator from the route's `navData`; the Navigator updates it in place when it changes.
+  get navData() { return JSON.parse(this.getAttribute('nav-data') ?? "{}"); }
   // A space or comma separated list of stylesheet names registered by the app through `registerStyles()`.
   get styles() { return this.getAttribute('styles'); }
 
@@ -77,6 +79,10 @@ class Component extends HTMLElement {
       case 'styles':
         // The component's own sheet comes first, so the app-provided sheets can override it.
         this.#shadow.adoptedStyleSheets = [sheet, ...resolveStyles(newVal)];
+        break;
+      case 'nav-data':
+        // The Navigator updates the navigation data in place, without re-creating the component, so react to the new data here.
+        // Note that this is also called once for the initial value, before the component is connected.
         break;
       default:
         break;

@@ -4,6 +4,7 @@ import { State } from "library/lib-fe/services/state";
 import resetStyles from 'library/lib-fe/styles/reset.css?inline';
 import componentStyles from './styles.css?inline';
 import templateHtml from './doc.html?raw';
+import { SubContainerHost } from "library/lib-fe/types/navigation";
 
 const template: HTMLTemplateElement = document.createElement('template');
 const componentName: string = "my-component";
@@ -16,7 +17,7 @@ sheet.replaceSync(`
 
 template.innerHTML = templateHtml;
 
-class Component extends HTMLElement {
+class Component extends HTMLElement implements SubContainerHost {
   #shadow: ShadowRoot;
   private initialised: boolean = false;
   private l: Logger;
@@ -43,14 +44,15 @@ class Component extends HTMLElement {
   }
 
   // Attributes need to be observed to be tied to the lifecycle change callback.
-  static get observedAttributes() { return ['label', 'data', 'i18n']; }
+  static get observedAttributes() { return ['label', 'data', 'i18n', 'nav-data']; }
 
   // Attribute values are always strings, so we need to convert them in their getter/setters as appropriate.
   get data() { return JSON.parse(this.getAttribute('data') ?? "{}"); }
+  // Set by the Navigator from the route's `navData`; the Navigator updates it in place when it changes.
+  get navData() { return JSON.parse(this.getAttribute('nav-data') ?? "{}"); }
   get label() { return this.getAttribute('label'); }
   get i18n() { return this.getAttribute('i18n'); }
 
-  set styles(value: string | null) { this.setAttribute('styles', value ?? ""); }
   set data(value: string) { this.setAttribute('data', value); }
   set label(value: string | null) { this.setAttribute('label', value ?? ""); }
   set i18n(value: string | null) { this.setAttribute('i18n', value ?? 'en'); }
@@ -65,6 +67,10 @@ class Component extends HTMLElement {
         if (!this.isConnected) return;
         if (oldVal) this.t?.unregisterElementsForTranslations(oldVal, this.textElements);
         this.t?.registerElementsForTranslations(newVal, this.textElements, this.translations);
+        break;
+      case 'nav-data':
+        // The Navigator updates the navigation data in place, without re-creating the component, so react to the new data here.
+        // Note that this is also called once for the initial value, before the component is connected.
         break;
       default:
         break;
@@ -106,6 +112,9 @@ class Component extends HTMLElement {
   adoptedCallback() {
     // Triggered when the element is adopted through `document.adoptElement()` (like when using an <iframe/>).
     // Note that adoption does not trigger the constructor again.
+  }
+  declareSubContainer(): HTMLElement | null {
+    throw new Error("Method not implemented.");
   }
 }
 

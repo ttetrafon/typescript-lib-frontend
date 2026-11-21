@@ -1,5 +1,6 @@
 import { Logger } from "library/lib/services/logger";
 import { eventNamesLib } from "library/lib-fe/data/enum";
+import type { DialogOptions } from "library/lib-fe/types/navigation";
 
 const logger: Logger = Logger.getInstance();
 
@@ -113,20 +114,23 @@ export async function emitNavigationEvent(that: EventTarget, targetUrl: string, 
 
 /**
  * The Navigator captures this event and creates a dialog featuring the specified web-component.
+ * Dialogs are shown one at a time, in the order they were requested; see `Navigator.dialog()` for a promise-based alternative.
  * @param {HTMLElement} that
  * @param {string} webComponent
  * @param {any} data
  * @param {Function} confirmCb
  * @param {Function} cancelCb
+ * @param {DialogOptions} options
  */
-export async function emitDialogEvent(that: EventTarget, webComponent: string, data: object, confirmCb?: Function, cancelCb?: Function): Promise<void> {
+export async function emitDialogEvent(that: EventTarget, webComponent: string, data: object, confirmCb?: Function, cancelCb?: Function, options?: DialogOptions): Promise<void> {
   emitCustomEvent(that, eventNamesLib.DIALOG_OPEN.description!, {
     bubbles: true,
     composed: true,
     element: webComponent,
     data: data,
     confirmCb: confirmCb,
-    cancelCb: cancelCb
+    cancelCb: cancelCb,
+    options: options
   });
 }
 /**
