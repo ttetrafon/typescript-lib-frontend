@@ -8,14 +8,13 @@ import templateHtml from './doc.html?raw';
 const template: HTMLTemplateElement = document.createElement('template');
 const componentName: string = "my-component";
 
-template.innerHTML = /*html*/`
-<style>
-  ${resetStyles}
-  ${componentStyles}
-</style>
+const sheet: CSSStyleSheet = new CSSStyleSheet();
+sheet.replaceSync(`
+  ${resetStyles}\n
+  ${componentStyles}`
+);
 
-${templateHtml}
-`;
+template.innerHTML = templateHtml;
 
 class Component extends HTMLElement {
   #shadow: ShadowRoot;
@@ -35,6 +34,7 @@ class Component extends HTMLElement {
     // Access happens through ths `shadowroot` property in the host.
     // DelegateFocus allows for focus() to be passed from the outside to the component itself.
     this.#shadow = this.attachShadow({ mode: 'open', delegatesFocus: true });
+    this.#shadow.adoptedStyleSheets = [sheet];
     this.#shadow.appendChild(template.content.cloneNode(true));
 
     this.l = Logger.getInstance();
@@ -50,6 +50,7 @@ class Component extends HTMLElement {
   get label() { return this.getAttribute('label'); }
   get i18n() { return this.getAttribute('i18n'); }
 
+  set styles(value: string | null) { this.setAttribute('styles', value ?? ""); }
   set data(value: string) { this.setAttribute('data', value); }
   set label(value: string | null) { this.setAttribute('label', value ?? ""); }
   set i18n(value: string | null) { this.setAttribute('i18n', value ?? 'en'); }

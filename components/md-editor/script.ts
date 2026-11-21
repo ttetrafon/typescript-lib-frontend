@@ -1,22 +1,19 @@
 import { Logger } from "library/lib/services/logger";
 import { Translations, Translator } from "library/lib-fe/services/translator";
 import { State } from "library/lib-fe/services/state";
+import { resolveStyles } from "library/lib-fe/services/styles";
+import { MkDocument } from "library/lib-fe/types/mkEditor";
 import resetStyles from 'library/lib-fe/styles/reset.css?inline';
 import componentStyles from './styles.css?inline';
 import templateHtml from './doc.html?raw';
-import { MkDocument } from "library/lib-fe/types/mkEditor";
 
 const template: HTMLTemplateElement = document.createElement('template');
 const componentName: string = "mk-editor";
 
-template.innerHTML = /*html*/`
-<style>
-  ${resetStyles}
-  ${componentStyles}
-</style>
+const sheet: CSSStyleSheet = new CSSStyleSheet();
+sheet.replaceSync(`${resetStyles}\n${componentStyles}`);
 
-${templateHtml}
-`;
+template.innerHTML = templateHtml;
 
 class MkEditor extends HTMLElement {
   #shadow: ShadowRoot;
@@ -34,23 +31,25 @@ class MkEditor extends HTMLElement {
   constructor() {
     super();
 
-    this.#shadow = this.attachShadow({ mode: 'open' });
-
-    template.shadowRootDelegatesFocus = true;
+    this.#shadow = this.attachShadow({ mode: 'open', delegatesFocus: true });
+    this.#shadow.adoptedStyleSheets = [sheet];
     this.#shadow.appendChild(template.content.cloneNode(true));
 
     this.l = Logger.getInstance();
     this.t = Translator.getInstance();
   }
 
-  static get observedAttributes() { return ['app-name', 'i18n', 'document-id']; }
+  static get observedAttributes() { return ['app-name', 'i18n', 'document-id', 'styles']; }
 
   get appName() { return this.getAttribute('app-name') ?? ""; }
   get documentId() { return this.getAttribute('document-id') ?? ""; }
   get i18n() { return this.getAttribute('i18n'); }
+  // A space or comma separated list of stylesheet names registered by the app through `registerStyles()`.
+  get styles() { return this.getAttribute('styles'); }
 
   set appName(value: string | null) { this.setAttribute('app-name', value ?? ""); }
-  set documentId(value: string) { this.setAttribute('documentId', value) }
+  set documentId(value: string) { this.setAttribute('document-id', value) }
+  set styles(value: string | null) { this.setAttribute('styles', value ?? ""); }
   set i18n(value: string | null) { this.setAttribute('i18n', value ?? 'en'); }
 
   attributeChangedCallback(name: string, oldVal: string, newVal: string) {
@@ -62,6 +61,9 @@ class MkEditor extends HTMLElement {
         break;
       case 'i18n':
         this.t?.registerElementsForTranslations(newVal, this.textElements, this.translations);
+        break;
+      case 'styles':
+        this.#shadow.adoptedStyleSheets = [sheet, ...resolveStyles(newVal)];
         break;
       default:
         break;

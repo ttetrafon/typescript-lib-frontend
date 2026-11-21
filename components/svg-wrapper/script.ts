@@ -1,8 +1,9 @@
 import { Logger } from "library/lib/services/logger";
+import { resolveStyles } from "library/lib-fe/services/styles";
+import { loadIcon } from './registry';
 import resetStyles from 'library/lib-fe/styles/reset.css?inline';
 import componentStyles from './styles.css?inline';
 import templateHtml from './doc.html?raw';
-import { loadIcon } from './registry';
 
 export { registerIcons } from './registry';
 
@@ -10,14 +11,11 @@ const template: HTMLTemplateElement = document.createElement('template');
 const componentName: string = "svg-wrapper";
 const defaultSet: string = "google";
 
-template.innerHTML = /*html*/`
-<style>
-  ${resetStyles}
-  ${componentStyles}
-</style>
+// The stylesheet is parsed once and shared by every instance through adoptedStyleSheets.
+const sheet: CSSStyleSheet = new CSSStyleSheet();
+sheet.replaceSync(`${resetStyles}\n${componentStyles}`);
 
-${templateHtml}
-`;
+template.innerHTML = templateHtml;
 
 class SvgWrapper extends HTMLElement {
   #shadow: ShadowRoot;
@@ -30,22 +28,30 @@ class SvgWrapper extends HTMLElement {
     super();
 
     this.#shadow = this.attachShadow({ mode: 'open' });
+    this.#shadow.adoptedStyleSheets = [sheet];
     this.#shadow.appendChild(template.content.cloneNode(true));
     this.container = this.#shadow.getElementById('icon') as HTMLElement;
 
     this.l = Logger.getInstance();
   }
 
-  static get observedAttributes() { return ['name', 'set']; }
+  static get observedAttributes() { return ['name', 'set', 'styles']; }
 
   get name() { return this.getAttribute('name') ?? ""; }
   get set() { return this.getAttribute('set') || defaultSet; }
+  // A space or comma separated list of stylesheet names registered by the app through `registerStyles()`.
+  get styles() { return this.getAttribute('styles'); }
 
   set name(value: string) { this.setAttribute('name', value); }
   set set(value: string) { this.setAttribute('set', value); }
+  set styles(value: string | null) { this.setAttribute('styles', value ?? ""); }
 
-  attributeChangedCallback(_attr: string, oldVal: string | null, newVal: string | null) {
+  attributeChangedCallback(attr: string, oldVal: string | null, newVal: string | null) {
     if (oldVal === newVal) return;
+    if (attr === 'styles') {
+      this.#shadow.adoptedStyleSheets = [sheet, ...resolveStyles(newVal)];
+      return;
+    }
     if (this.isConnected) this.render();
   }
   connectedCallback() {

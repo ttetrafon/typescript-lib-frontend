@@ -1,21 +1,18 @@
 import { Logger } from "library/lib/services/logger";
+import { Navigator } from "library/lib-fe/services/navigator";
 import { Translations, Translator } from "library/lib-fe/services/translator";
+import { resolveStyles } from "library/lib-fe/services/styles";
 import resetStyles from 'library/lib-fe/styles/reset.css?inline';
 import componentStyles from './styles.css?inline';
 import templateHtml from './doc.html?raw';
-import { Navigator } from "library/lib-fe/services/navigator";
 
 const template: HTMLTemplateElement = document.createElement('template');
 const componentName: string = "page-404";
 
-template.innerHTML = /*html*/`
-<style>
-  ${resetStyles}
-  ${componentStyles}
-</style>
+const sheet: CSSStyleSheet = new CSSStyleSheet();
+sheet.replaceSync(`${resetStyles}\n${componentStyles}`);
 
-${templateHtml}
-`;
+template.innerHTML = templateHtml;
 
 class Component extends HTMLElement {
   #shadow: ShadowRoot;
@@ -30,18 +27,21 @@ class Component extends HTMLElement {
     super();
 
     this.#shadow = this.attachShadow({ mode: 'open', delegatesFocus: true });
+    this.#shadow.adoptedStyleSheets = [sheet];
     this.#shadow.appendChild(template.content.cloneNode(true));
 
     this.l = Logger.getInstance();
     this.t = Translator.getInstance();
   }
 
-  static get observedAttributes() { return ['label', 'data', 'i18n']; }
+  static get observedAttributes() { return ['label', 'data', 'i18n', 'styles']; }
 
   get data() { return JSON.parse(this.getAttribute('data') ?? "{}"); }
   get label() { return this.getAttribute('label'); }
   get i18n() { return this.getAttribute('i18n'); }
+  get styles() { return this.getAttribute('styles'); }
 
+  set styles(value: string | null) { this.setAttribute('styles', value ?? ""); }
   set data(value: string) { this.setAttribute('data', value); }
   set label(value: string | null) { this.setAttribute('label', value ?? ""); }
   set i18n(value: string | null) { this.setAttribute('i18n', value ?? 'en'); }
@@ -52,6 +52,9 @@ class Component extends HTMLElement {
     switch (name) {
       case 'i18n':
         this.t?.registerElementsForTranslations(newVal, this.textElements, this.translations);
+        break;
+      case 'styles':
+        this.#shadow.adoptedStyleSheets = [sheet, ...resolveStyles(newVal)];
         break;
       default:
         break;

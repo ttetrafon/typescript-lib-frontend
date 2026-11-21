@@ -1,6 +1,7 @@
 import { Logger } from "library/lib/services/logger";
 import { Translations, Translator } from "library/lib-fe/services/translator";
 import { State } from "library/lib-fe/services/state";
+import { resolveStyles } from "library/lib-fe/services/styles";
 import resetStyles from 'library/lib-fe/styles/reset.css?inline';
 import componentStyles from './styles.css?inline';
 import templateHtml from './doc.html?raw';
@@ -8,14 +9,13 @@ import templateHtml from './doc.html?raw';
 const template: HTMLTemplateElement = document.createElement('template');
 const componentName: string = "my-component";
 
-template.innerHTML = /*html*/`
-<style>
-  ${resetStyles}
-  ${componentStyles}
-</style>
+const sheet: CSSStyleSheet = new CSSStyleSheet();
+sheet.replaceSync(`
+  ${resetStyles}\n
+  ${componentStyles}`
+);
 
-${templateHtml}
-`;
+template.innerHTML = templateHtml;
 
 class Component extends HTMLElement {
   #shadow: ShadowRoot;
@@ -35,6 +35,7 @@ class Component extends HTMLElement {
     // Access happens through ths `shadowroot` property in the host.
     // DelegateFocus allows for focus() to be passed from the outside to the component itself.
     this.#shadow = this.attachShadow({ mode: 'open', delegatesFocus: true });
+    this.#shadow.adoptedStyleSheets = [sheet];
     this.#shadow.appendChild(template.content.cloneNode(true));
 
     this.l = Logger.getInstance();
@@ -42,15 +43,18 @@ class Component extends HTMLElement {
   }
 
   // Attributes need to be observed to be tied to the lifecycle change callback.
-  static get observedAttributes() { return ['app-name', 'label', 'data', 'i18n']; }
+  static get observedAttributes() { return ['app-name', 'label', 'data', 'i18n', 'styles']; }
 
   // Attribute values are always strings, so we need to convert them in their getter/setters as appropriate.
   get appName() { return this.getAttribute('app-name') ?? ""; }
   get data() { return JSON.parse(this.getAttribute('data') ?? "{}"); }
   get label() { return this.getAttribute('label'); }
   get i18n() { return this.getAttribute('i18n'); }
+  // A space or comma separated list of stylesheet names registered by the app through `registerStyles()`.
+  get styles() { return this.getAttribute('styles'); }
 
-  set appName(value: string) { this.setAttribute('label', value); }
+  set styles(value: string | null) { this.setAttribute('styles', value ?? ""); }
+  set appName(value: string) { this.setAttribute('app-name', value); }
   set data(value: string) { this.setAttribute('data', value); }
   set label(value: string | null) { this.setAttribute('label', value ?? ""); }
   set i18n(value: string | null) { this.setAttribute('i18n', value ?? 'en'); }
@@ -69,6 +73,10 @@ class Component extends HTMLElement {
         if (!this.isConnected) return;
         if (oldVal) this.t?.unregisterElementsForTranslations(oldVal, this.textElements);
         this.t?.registerElementsForTranslations(newVal, this.textElements, this.translations);
+        break;
+      case 'styles':
+        // The component's own sheet comes first, so the app-provided sheets can override it.
+        this.#shadow.adoptedStyleSheets = [sheet, ...resolveStyles(newVal)];
         break;
       default:
         break;
