@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Navigator as NavigatorClass } from './navigator';
 import type { DialogResult, Route } from 'library/lib-fe/types/navigation';
 
-/////////////////////
+///////////////////////
 ///   ENVIRONMENT   ///
-/////////////////////
+///////////////////////
 
 // jsdom does not implement the methods of the dialog element; these follow the behaviour of the browsers.
 const dialogPrototype = HTMLDialogElement.prototype as any;
@@ -84,9 +84,9 @@ for (const [name, constructor] of Object.entries(elements)) {
   if (!customElements.get(name)) customElements.define(name, constructor);
 }
 
-/////////////////
+///////////////////
 ///   HELPERS   ///
-/////////////////
+///////////////////
 
 let Navigator: typeof NavigatorClass;
 let helpers: typeof import('library/lib-fe/helper/dom');

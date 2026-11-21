@@ -93,8 +93,9 @@ class MkEditor extends HTMLElement {
   private async setupState() {
     if (!this.appName || this.appName.length === 0 || this.s) return;
     this.s = State.getInstance(this.appName);
-    const doc = await this.s.getValueFromObservable("0001-test-1000") as MkDocument;
-    this.setDocument(doc);
+    // the document is created asynchronously by the app, so wait for it for a while
+    const doc = await this.s.getValueFromObservable<MkDocument>("0001-test-1000", 10000);
+    if (doc) this.setDocument(doc);
   }
 
   public setDocument(document: MkDocument) {

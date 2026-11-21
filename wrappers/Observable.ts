@@ -1,60 +1,66 @@
-import { cloneDeep } from "lodash";
+import { Logger } from "library/lib/services/logger";
 import { Listener } from "library/lib-fe/types/state";
+
+const FORBIDDEN_KEYS: ReadonlySet<string> = new Set(["__proto__", "constructor", "prototype"]);
 
 export class Observable {
   private name: string;
   private value: any;
   // { 'subscriber': { 'watched-path': callback } }
-  private listeners: Record<string, Record<string, Listener>>;
+  private listeners: Map<string, Map<string, Listener>>;
   private default: boolean;
 
   constructor(name: string, value: any, isDefault: boolean) {
     this.name = name;
-    this.value = value;
+    this.value = structuredClone(value);
     this.default = isDefault;
-    this.listeners = {};
+    this.listeners = new Map();
   }
 
+  /**
+   * Get a copy of the observable's value, or of a part of it.
+   * @param {string} path: the observable's name, optionally followed by a path; e.g. "user", "user.address.city"
+   * @returns the value, or undefined if the final property does not exist; throws if the path goes through a non-object
+   */
   get(path?: string): any {
-    let v: any = this.value;
-    if (!path) return cloneDeep(v);
+    if (!path || path === this.name) return structuredClone(this.value);
 
-    if (path !== this.name) {
-      const parts: string[] = path.split(".");
-      for (let i = 1; i < parts.length; i++) {
-        if (v === null || v === undefined) {
-          throw new Error(`Cannot read property '${parts[i]}' of ${v}`);
-        }
-        if (typeof v !== 'object' || v === null) {
-          throw new Error(`Cannot read property '${parts[i]}' of ${typeof v}`);
-        }
-        v = (v as Record<string, any>)[parts[i]];
-      }
+    const parts: string[] = path.split(".");
+    let v: any = this.value;
+    for (let i = 1; i < parts.length; i++) {
+      v = Observable.child(v, parts[i]);
     }
-    return cloneDeep(v);
+    return structuredClone(v);
   }
 
+  /**
+   * Set the observable's value, or a part of it, and notify the relevant listeners.
+   * @param {string} updatePath: the observable's name, optionally followed by a path; e.g. "user", "user.address.city"
+   * @param {any} value: the new value (copied; to guard against silent updates)
+   */
   set(updatePath: string, value: any) {
+    const cloned: any = structuredClone(value);
+
     if (updatePath === this.name) {
       // update the full value
-      this.value = value;
+      this.value = cloned;
       this.notifyListeners(this.name);
       return;
     }
 
     const parts: string[] = updatePath.split(".");
-    const l: number = parts.length;
+    const last: string = parts[parts.length - 1];
+    Observable.assertSafeKey(last);
+
     let wrapper: any = this.value;
-    for (let i = 2; i < l - 1; i++) {
-      if (wrapper === null || wrapper === undefined) {
-        throw new Error(`Cannot read property '${parts[i]}' of ${wrapper}`);
-      }
-      if (typeof wrapper !== 'object' || wrapper === null) {
-        throw new Error(`Cannot read property '${parts[i]}' of ${typeof wrapper}`);
-      }
-      wrapper = (wrapper as Record<string, any>)[parts[i]];
+    for (let i = 1; i < parts.length - 1; i++) {
+      wrapper = Observable.child(wrapper, parts[i]);
     }
-    wrapper[parts[1]] = value;
+    if (typeof wrapper !== "object" || wrapper === null) {
+      throw new Error(`Cannot set property '${last}' of ${wrapper === null ? "null" : typeof wrapper}`);
+    }
+
+    wrapper[last] = cloned;
     this.notifyListeners(updatePath);
   }
 
@@ -66,44 +72,61 @@ export class Observable {
     this.default = false;
   }
 
-  async subscribe(subscriber: string, listeners: Record<string, Listener>) {
-    if (!this.listeners.hasOwnProperty(subscriber)) {
-      this.listeners[subscriber] = {};
+  subscribe(subscriber: string, listeners: Record<string, Listener>) {
+    let own: Map<string, Listener> | undefined = this.listeners.get(subscriber);
+    if (!own) {
+      own = new Map();
+      this.listeners.set(subscriber, own);
     }
 
     for (const [path, listener] of Object.entries(listeners)) {
-      this.listeners[subscriber][path] = listener;
+      own.set(path, listener);
     }
   }
 
-  async unsubscribe(subscriber: string, paths?: string[]) {
-    if (!this.listeners[subscriber]) return;
+  unsubscribe(subscriber: string, paths?: string[]) {
+    const own: Map<string, Listener> | undefined = this.listeners.get(subscriber);
+    if (!own) return;
 
     if (!paths) {
-      delete this.listeners[subscriber];
+      this.listeners.delete(subscriber);
       return;
     }
 
-    paths.forEach((p) => {
-      delete this.listeners[subscriber][p];
-    });
-
-    if (Object.keys(this.listeners[subscriber]).length === 0) delete this.listeners[subscriber];
+    paths.forEach((p) => own.delete(p));
+    if (own.size === 0) this.listeners.delete(subscriber);
   }
 
   private notifyListeners(updatedPath: string) {
-    // get the actual value
-    const v: any = this.get(updatedPath);
-    // notify subscribers if they indeed follow the path!
-    for (const [sub, listeners] of Object.entries(this.listeners)) {
-      for (const [watchedPath, listener] of Object.entries(listeners)) {
-        if (
-          // if either of the paths is the root, notify
-          (!updatedPath.includes(".") || !updatedPath.includes("."))
-          // if either of the paths is a subpath of the other, notify
-          || (updatedPath.includes(watchedPath) || watchedPath.includes(updatedPath))
-        ) listener(sub, watchedPath, this.get(watchedPath));
+    // iterate over copies, so that listeners can (un)subscribe while being notified
+    for (const [sub, listeners] of [...this.listeners]) {
+      for (const [watchedPath, listener] of [...listeners]) {
+        if (!Observable.pathsOverlap(updatedPath, watchedPath)) continue;
+
+        // one failing listener must not prevent the others from being notified
+        try {
+          listener(sub, watchedPath, this.get(watchedPath));
+        }
+        catch (e) {
+          Logger.getInstance().error(`Listener '${watchedPath}' of '${sub}' failed:`, e);
+        }
       }
     }
+  }
+
+  /** Two paths overlap if they are equal or one is an ancestor of the other. */
+  private static pathsOverlap(a: string, b: string): boolean {
+    return a === b || a.startsWith(b + ".") || b.startsWith(a + ".");
+  }
+
+  private static child(parent: any, key: string): any {
+    if (typeof parent !== "object" || parent === null) {
+      throw new Error(`Cannot read property '${key}' of ${parent === null ? "null" : typeof parent}`);
+    }
+    return Object.hasOwn(parent, key) ? parent[key] : undefined;
+  }
+
+  private static assertSafeKey(key: string) {
+    if (FORBIDDEN_KEYS.has(key)) throw new Error(`Forbidden property name '${key}'`);
   }
 }
