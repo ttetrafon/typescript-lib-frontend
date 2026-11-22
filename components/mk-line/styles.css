@@ -1,8 +1,37 @@
 :host {
-  /** :host here is used to style the web-component itself - note that outside styling have higher priority */
-  /** :host(:selector) can be used to apply conditional styling, e.g.: ':host(:hover)', ':host([disabled])', ':host(.blue)', ':host([size="small"])' etc */
   display: block;
 }
 
-/** :host-context(<selector>) can be used to apply styling based on the component's parents; it applies when some parent matches the selector, e.g.: ':host-context(.dark-theme)' */
-/** NOTE: Not currently supported in all browsers... */
+div.mk-line {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: stretch;
+  align-items: stretch;
+  gap: 4px;
+}
+
+/* The counter is defined by the parent editor (counter-reset / counter-increment on mk-line). */
+#pos {
+  align-self: center;
+  width: 3ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+#pos::before {
+  content: counter(line);
+}
+
+textarea {
+  background-color: var(--colour-action);
+  resize: vertical;
+  flex: 0.75 0.75;
+  /* grows with the text until the user resizes it (an explicit height then wins) */
+  field-sizing: content;
+  min-height: 1lh;
+  margin-right: 12px;
+}
+
+div.display {
+  flex: 1 1;
+}

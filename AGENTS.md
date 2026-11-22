@@ -24,6 +24,8 @@ It is not a package. It is a git submodule/folder (`library/lib-fe`) inside a ho
 | `services/styles.ts`                          | Named shared stylesheet registry (`registerStyles`, `resolveStyles`)                        |
 | `components/`                                 | Web components (each: `script.ts`, `doc.html`, `styles.css`) and two **templates**          |
 | `helper/dom.ts`                               | DOM helpers and the custom-event emitters                                                   |
+| `helper/timings.ts`                           | `debounce(fn, wait)` with `cancel()` / `flush()`                                            |
+| `helper/mkEditor.ts`                          | `convertMkToHTML()`: markdown-like text to DOM elements (used by `mk-line`)                 |
 | `util/Requests.ts`                            | `fetch` wrappers (plain and DPoP-signed)                                                    |
 | `util/WindowSize.ts`                          | `WindowSizeWatcher`: publishes window size as an observable                                 |
 | `util/device.ts`                              | `getDeviceLabel()`                                                                          |
@@ -145,8 +147,8 @@ Import a component's `script.ts` for its side effect (it calls `customElements.d
 | ------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `page-404`    | `components/404/script`         | Not-found page; link back to `/`                                                                                                                            |
 | `svg-wrapper` | `components/svg-wrapper/script` | Attributes `name`, `set` (default `google`), `styles`. Scales to its container; colour follows `color` (`fill: currentColor`)                               |
-| `mk-editor`   | `components/md-editor/script`   | Attributes `app-name`, `document-id`, `i18n`, `styles`. Reads an `MkDocument` observable named by `document-id` (see `types/mkEditor.ts`). Work in progress |
-| `mk-line`     | `components/mk-line/script`     | One line of the editor (textarea). Work in progress                                                                                                         |
+| `mk-editor`   | `components/md-editor/script`   | Attributes `app-name`, `document-id`, `debounce-ms` (passed on to its lines), `i18n`, `styles`. Reads an `MkDocument` observable named by `document-id` (see `types/mkEditor.ts`). Work in progress |
+| `mk-line`     | `components/mk-line/script`     | One line of the editor (textarea). Attribute `debounce-ms` (default 1000): the quiet time before the editor is told about an edit. Work in progress                                                                                                      |
 
 ### Icons
 
@@ -177,6 +179,30 @@ Each component = `script.ts` + `doc.html` (template markup, imported with `?raw`
 - Events that must leave the shadow DOM use the `helper/dom.ts` emitters (bubbling + composed), not direct calls to other components.
 - Look up inner elements with `this.#shadow.getElementById/querySelector`, not `document`.
 
+## Helpers and utilities (`helper/`, `util/`)
+
+`helper/` holds stateless functions you call directly; `util/` holds the things that talk to the browser or the network (a class that keeps a listener, `fetch`). Neither has side effects on import. Put a new function in the file that matches its topic, keep it generic (no app names or routes), and add a `*.test.ts` next to it.
+
+**`helper/dom.ts`**: grouped by section comments.
+- Children: `clearChildren`, `clearChildrenOfType(parent, tag)` (lowercase tag name), `clearChildrenOfClass`.
+- Position: `findSelfIndexInParent`, `putElementBefore`, `putElementAfter`.
+- Inputs: `populateSelectorOptions(select, options, valueKey, textKey)`, `setDateInputAsToday`.
+- Events: the emitters listed under "Events" below. They are `async` for historical reasons; do not `await` them unless you need completion.
+- CSS: `getNumberFromPixelValue(el, cssProperty)` reads a computed pixel value as a number.
+- For plain DOM work prefer the native APIs (`el.after()`, `el.before()`, `replaceChildren()`); use these helpers where they already fit.
+
+**`helper/timings.ts`**: `debounce(fn, wait)` runs `fn` once, `wait` ms after the last call (trailing edge), with the last call's arguments and `this`.
+- It returns the debounced function plus `cancel()` (drop the pending call) and `flush()` (run it now). Call `cancel()` in `disconnectedCallback` when the pending work belongs to the removed component, and `flush()` where an edit must not wait (e.g. on `change`/blur).
+- The wait is fixed once created. To make it configurable, rebuild the debounced function when the attribute changes (see `mk-line` `debounce-ms`).
+
+**`helper/mkEditor.ts`**: `convertMkToHTML(text)` returns a `div` with one block per line: `# ` to `###### ` headings, otherwise a `p`. Inline: `**bold**`, `_italic_` / `*italic*`, `__underline__`, `-strikethrough-` (nestable; `\` escapes the next character; `_`, `__` and `-` do not match inside words, so `snake_case` and `well-known` stay as they are). It only creates elements and text nodes, so it is safe for user text. Extend the `INLINE_MARKERS` table for new inline styles.
+
+**`util/Requests.ts`**: see "HTTP" below.
+
+**`util/WindowSize.ts`**: `WindowSizeWatcher.getInstance(state)` is a singleton created once in `main.ts`. It publishes `{ width, height }` in the `OBSERVABLE_WINDOW_SIZE` observable (not persisted, not broadcast) and updates it on `resize`. Components subscribe to that observable and unsubscribe in `disconnectedCallback`; they do not add their own `resize` listeners.
+
+**`util/device.ts`**: `getDeviceLabel()`, see "HTTP" below.
+
 ## HTTP (`util/Requests.ts`, `security/dpop.ts`)
 
 - `requestGet<T>(url, withAuth)`, `requestPost<T>(url, jsonString, withAuth)`; `request<T>(url, method, data?, headers?, credentials?)` is the generic form. Bodies are **already-stringified JSON**; the response is parsed as JSON; a non-2xx status throws `Error`.
@@ -190,7 +216,7 @@ Each component = `script.ts` + `doc.html` (template markup, imported with `?raw`
 
 ## Tests
 
-Vitest + jsdom, files next to the source (`*.test.ts`: `navigator`, `state`, `Observable`). Run from the host app: `pnpm test` (typecheck first, then `vitest --run`). Add or update tests when changing `Navigator`, `State`, or `Observable`.
+Vitest + jsdom, files next to the source (`*.test.ts`: `navigator`, `state`, `Observable`, `helper/mkEditor`, `helper/timings`). Run from the host app: `pnpm test` (typecheck first, then `vitest --run`). Add or update tests when changing `Navigator`, `State`, or `Observable`.
 
 ## Pitfalls
 
