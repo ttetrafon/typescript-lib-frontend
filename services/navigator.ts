@@ -2,24 +2,19 @@ import { Logger } from "../../lib/services/logger";
 import { checkStringForExistence, checkStringForNonExistence } from "library/lib/data/data";
 import { eventNamesLib } from "library/lib-fe/data/enum";
 import { clearChildren, emitNavigationEvent } from "library/lib-fe/helper/dom";
-import { DialogOptions, DialogRequest, DialogResult, RenderedLevel, Route, RouteInfo, SubContainerHost } from "library/lib-fe/types/navigation";
+import { DialogOptions, DialogRequest, DialogResult, RenderedLevel, Route, RouteInfo, RouteMatch, SubContainerHost } from "library/lib-fe/types/navigation";
 
 const NOT_FOUND_ROUTE = "404";
 const STRUCTURED_DATA_ID = "navigator-structured-data";
-
+const SCROLL_STATE_KEY = "navigatorScroll";
+const SCROLL_SAVE_DELAY_MS = 100;
+const SCROLL_RESTORE_MAX_FRAMES = 90;
 const FALLBACK_NOT_FOUND: Route = {
   content: "page-404",
   title: "404 - Page not found",
   description: "The page you requested was not found!",
   pathType: "WebPage"
 };
-
-/** A route that matched a path, with the values of its parameters. */
-type RouteMatch = {
-  key: string;
-  route: Route;
-  params: Record<string, string>;
-}
 
 export class Navigator {
   static #instance: Navigator
@@ -34,10 +29,15 @@ export class Navigator {
   private renderedLevels: RenderedLevel[] = [];
   private currentPath: string | null = null;
 
+  private scrollSaveTimer: ReturnType<typeof setTimeout> | undefined;
+  /** True while a scroll position is being restored; scrolling is not stored then. */
+  private restoringScroll = false;
+  /** Identifies the latest restoration, so an older one stops when a newer one starts. */
+  private scrollRestoreToken = 0;
+
   private dialog: HTMLDialogElement;
   /** The dialog that is showing now. */
   private activeDialog: DialogRequest | null = null;
-  /** The dialogs that wait for their turn, in the order they were requested. */
   private dialogQueue: DialogRequest[] = [];
 
   private constructor(domain: string, containerId: string, routes: Record<string, Route>, aliases: Record<string, string>) {
@@ -59,12 +59,18 @@ export class Navigator {
 
   private init() {
     this._logger.debug("---> Navigator.init()");
+    this.initScrollRestoration();
+
     // Handle initial load
     this.navigateTo(window.location.pathname, false);
+    this.restoreScroll(window.history.state?.[SCROLL_STATE_KEY]); // a reload keeps the state of the entry
 
     // Handle back/forward navigation
     window.addEventListener('popstate', () => {
-      this.navigateTo(window.location.pathname, false, window.history.state ?? {});
+      const state = window.history.state ?? {};
+      clearTimeout(this.scrollSaveTimer); // a pending save belongs to the entry that was left
+      this.navigateTo(window.location.pathname, false, state);
+      this.restoreScroll(state[SCROLL_STATE_KEY]);
     });
 
     // Listen for custom navigate events
@@ -110,6 +116,78 @@ export class Navigator {
     this.dialog.addEventListener('close', () => {
       if (this.activeDialog && !this.dialog.open) this.closeDialog({ confirmed: false });
     });
+  }
+
+  /**
+   * The scroll position is kept in the state of each history entry, so back/forward (and a reload) return to where the user was.
+   * The browser's own restoration is switched off, as it runs before the page is rendered and would be wrong for an SPA.
+   */
+  private initScrollRestoration() {
+    if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
+
+    window.addEventListener('scroll', () => {
+      if (this.restoringScroll) return; // our own scrolling, or a position that is not final yet
+      clearTimeout(this.scrollSaveTimer);
+      this.scrollSaveTimer = setTimeout(() => this.saveScroll(), SCROLL_SAVE_DELAY_MS);
+    }, { passive: true });
+
+    // Makes sure the last position is stored when the page is left or reloaded.
+    window.addEventListener('pagehide', () => this.saveScroll());
+  }
+
+  /** Stores the current scroll position in the current history entry. */
+  private saveScroll() {
+    clearTimeout(this.scrollSaveTimer);
+    try {
+      const state = window.history.state;
+      const base = state && typeof state === 'object' ? state : {};
+      window.history.replaceState({ ...base, [SCROLL_STATE_KEY]: { x: window.scrollX, y: window.scrollY } }, '');
+    } catch (error) {
+      this._logger.warn("The scroll position could not be stored:", error);
+    }
+  }
+
+  /**
+   * Scrolls to the given position. The page content may still be loading (components fetch their data), so the position is
+   * tried again for a short while until the page is tall enough, or until the user scrolls by themselves.
+   */
+  private restoreScroll(position: { x: number, y: number } | undefined) {
+    clearTimeout(this.scrollSaveTimer);
+    const token = ++this.scrollRestoreToken;
+    const { x, y } = position ?? { x: 0, y: 0 };
+
+    this.restoringScroll = true;
+    const stop = () => {
+      window.removeEventListener('wheel', cancel);
+      window.removeEventListener('touchstart', cancel);
+      window.removeEventListener('keydown', cancel);
+      if (token === this.scrollRestoreToken) this.restoringScroll = false;
+    };
+    const cancel = () => {
+      this.scrollRestoreToken++; // ends the attempts
+      stop();
+    };
+    window.addEventListener('wheel', cancel, { passive: true, once: true });
+    window.addEventListener('touchstart', cancel, { passive: true, once: true });
+    window.addEventListener('keydown', cancel, { once: true });
+
+    let attempts = 0;
+    const attempt = () => {
+      if (token !== this.scrollRestoreToken) return stop();
+
+      window.scrollTo(x, y);
+      const reached = Math.abs(window.scrollY - y) < 1 && Math.abs(window.scrollX - x) < 1;
+      if (reached || ++attempts >= SCROLL_RESTORE_MAX_FRAMES) {
+        // Let the scroll events of our own scrolling pass before the position is tracked again.
+        requestAnimationFrame(() => {
+          if (token === this.scrollRestoreToken) this.saveScroll();
+          stop();
+        });
+        return;
+      }
+      requestAnimationFrame(attempt);
+    };
+    attempt();
   }
 
   /** Requests a dialog. It is shown when it is its turn, and the promise resolves with how it was closed. It never rejects. */
@@ -241,6 +319,10 @@ export class Navigator {
     let newPath = this.normalisePath(path);
     newPath = this.aliases[newPath] ?? newPath;
 
+    // Going to a new page: the position on the page that is left is stored before anything is rendered, and the new page starts at the top.
+    const isNewEntry = pushState && newPath !== window.location.pathname;
+    if (isNewEntry) this.saveScroll();
+
     // The dialogs that are waiting most likely belong to the page that is left. Resolving the same path again (see `addRoute()`) is not leaving it.
     if (newPath !== this.currentPath) this.cancelQueuedDialogs();
     this.currentPath = newPath;
@@ -283,6 +365,7 @@ export class Navigator {
       // Re-navigating to the current path must not add another history entry.
       if (newPath === window.location.pathname) window.history.replaceState(stateData, '', newPath);
       else window.history.pushState(stateData, '', newPath);
+      if (isNewEntry) this.restoreScroll(undefined);
     }
   }
 

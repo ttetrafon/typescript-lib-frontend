@@ -73,6 +73,13 @@ export type RouteInfo = {
   rerender?: boolean;
 }
 
+/** A route that matched a path, with the values of its parameters. */
+export type RouteMatch = {
+  key: string;
+  route: Route;
+  params: Record<string, string>;
+}
+
 /**
  * Implemented by a page component that hosts sub-pages (the next part of the path).
  * The Navigator calls it to find where the sub-page is rendered.
