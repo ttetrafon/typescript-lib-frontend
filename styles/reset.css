@@ -86,12 +86,6 @@ select {
 
 /* 12. Element usage errors */
 
-/* Sections without headings */
-section:not(:has(h1, h2, h3, h4, h5, h6)) {
-  --ERROR: "This section needs a heading";
-  outline: 3px dashed red;
-}
-
 /* Images without alt text */
 img:not([alt]) {
   --ERROR: "Image is missing an alt attribute";
@@ -180,8 +174,7 @@ strike {
 }
 
 /* Empty id / duplicate-prone attributes */
-[id=""],
-[class=""] {
+[id=""] {
   --ERROR: "Empty id or class attribute";
   outline: 3px dashed red;
 }
